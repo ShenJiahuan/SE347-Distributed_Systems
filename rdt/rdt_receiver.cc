@@ -77,7 +77,7 @@ void Receiver_FromLowerLayer(struct packet *pkt) {
 
     memcpy(msg_buffer->data + buffer_size, get_data(pkt), pkt_size);
     buffer_size += pkt_size;
-    if (buffer_size == msg_buffer->size) {
+    if (buffer_size == (msg_size_t) msg_buffer->size) {
         Receiver_ToUpperLayer(msg_buffer);
 
         delete[] msg_buffer->data;

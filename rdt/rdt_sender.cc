@@ -112,7 +112,7 @@ void Sender_FromLowerLayer(struct packet *pkt) {
 /* event handler, called when the timer expires */
 void Sender_Timeout() {
     Sender_StartTimer(timeout);
-    for (int i = base; i != nextseqid; i++) {
+    for (seqid_t i = base; i != nextseqid; i++) {
         Sender_ToLowerLayer(sender_packet_buffer[i % N]);
     }
 }
