@@ -1,7 +1,3 @@
-//
-// Created by 沈嘉欢 on 2020/3/12.
-//
-
 #ifndef RDT_SIM_CRC_H
 #define RDT_SIM_CRC_H
 

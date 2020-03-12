@@ -1,7 +1,3 @@
-//
-// Created by 沈嘉欢 on 2020/3/12.
-//
-
 #include <cstring>
 #include <cstdlib>
 #include "rdt_protocol.h"
