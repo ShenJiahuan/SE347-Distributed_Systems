@@ -1,30 +1,39 @@
 /*
  * FILE: rdt_receiver.cc
  * DESCRIPTION: Reliable data transfer receiver.
- * NOTE: This implementation assumes there is no packet loss, corruption, or 
- *       reordering.  You will need to enhance it to deal with all these 
- *       situations.  In this implementation, the packet format is laid out as 
- *       the following:
- *       
- *       |<-  1 byte  ->|<-             the rest            ->|
- *       | payload size |<-             payload             ->|
- *
- *       The first byte of each packet indicates the size of the payload
- *       (excluding this single-byte header)
  */
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
+#include <map>
 
+#include "rdt_protocol.h"
 #include "rdt_struct.h"
 #include "rdt_receiver.h"
+
+using seqid_t = uint32_t;
+using msg_size_t = uint32_t;
+using pkt_size_t = uint8_t;
+using checksum_t = uint32_t;
+
+static seqid_t expectedseqid;
+
+static message *msg_buffer;
+static msg_size_t buffer_size;
+
+static packet *last_ack;
+
+static std::map<seqid_t, packet *> receiver_packet_buffer;
 
 
 /* receiver initialization, called once at the very beginning */
 void Receiver_Init() {
     fprintf(stdout, "At %.2fs: receiver initializing ...\n", GetSimulationTime());
+    expectedseqid = 0;
+    msg_buffer = new message();
+    memset(msg_buffer, 0, sizeof(message));
+    buffer_size = 0;
 }
 
 /* receiver finalization, called once at the very end.
@@ -38,25 +47,54 @@ void Receiver_Final() {
 /* event handler, called when a packet is passed from the lower layer at the 
    receiver */
 void Receiver_FromLowerLayer(struct packet *pkt) {
-    /* 1-byte header indicating the size of the payload */
-    int header_size = 1;
 
-    /* construct a message and deliver to the upper layer */
-    struct message *msg = (struct message *) malloc(sizeof(struct message));
-    ASSERT(msg != NULL);
+    seqid_t seqid = get_seqid(pkt);
+    msg_size_t msg_size = get_msg_size(pkt);
+    pkt_size_t pkt_size = get_pkt_size(pkt);
+    checksum_t checksum = get_checksum(pkt);
 
-    msg->size = pkt->data[0];
+    if (checksum != make_checksum(pkt)) {
+        return;
+    }
 
-    /* sanity check in case the packet is corrupted */
-    if (msg->size < 0) msg->size = 0;
-    if (msg->size > RDT_PKTSIZE - header_size) msg->size = RDT_PKTSIZE - header_size;
+    if (seqid != expectedseqid) {
+        if (last_ack) {
+            Receiver_ToLowerLayer(last_ack);
+        }
+        if (seqid > expectedseqid) {
+            auto pkt1 = new packet();
+            memcpy(pkt1, pkt, sizeof(packet));
+            receiver_packet_buffer.insert(std::make_pair(seqid, pkt1));
+        }
+        return;
+    }
+    expectedseqid++;
 
-    msg->data = (char *) malloc(msg->size);
-    ASSERT(msg->data != NULL);
-    memcpy(msg->data, pkt->data + header_size, msg->size);
-    Receiver_ToUpperLayer(msg);
+    if (buffer_size == 0) {
+        msg_buffer->size = msg_size;
+        msg_buffer->data = new char[msg_size];
+    }
 
-    /* don't forget to free the space */
-    if (msg->data != NULL) free(msg->data);
-    if (msg != NULL) free(msg);
+    memcpy(msg_buffer->data + buffer_size, get_data(pkt), pkt_size);
+    buffer_size += pkt_size;
+    if (buffer_size == msg_buffer->size) {
+        Receiver_ToUpperLayer(msg_buffer);
+
+        delete[] msg_buffer->data;
+        msg_buffer->size = 0;
+        msg_buffer->data = nullptr;
+        buffer_size = 0;
+    }
+
+    delete last_ack;
+    last_ack = make_ack(seqid);
+    Receiver_ToLowerLayer(last_ack);
+
+    if (receiver_packet_buffer.find(expectedseqid) != receiver_packet_buffer.end()) {
+        auto buffered_id = expectedseqid;
+        auto buffered_pkt = receiver_packet_buffer[buffered_id];
+        Receiver_FromLowerLayer(buffered_pkt);
+        receiver_packet_buffer.erase(buffered_id);
+        delete buffered_pkt;
+    }
 }
