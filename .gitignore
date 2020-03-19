@@ -90,4 +90,6 @@ fabric.properties
 .idea/**/markdown-navigator.xml
 .idea/**/markdown-navigator/
 
+# macOS
+.DS_Store
 # End of https://www.gitignore.io/api/clion
