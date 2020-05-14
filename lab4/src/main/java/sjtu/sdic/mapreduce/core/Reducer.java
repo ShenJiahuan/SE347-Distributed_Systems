@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.IntStream;
 import sjtu.sdic.mapreduce.common.KeyValue;
 import sjtu.sdic.mapreduce.common.Utils;
 
@@ -46,20 +47,23 @@ public class Reducer {
   public static void doReduce(
       String jobName, int reduceTask, String outFile, int nMap, ReduceFunc reduceF) {
     final List<KeyValue> kvs = new ArrayList<>();
-    for (int i = 0; i < nMap; i++) {
-      final String inFile = Utils.reduceName(jobName, i, reduceTask);
-      String content;
+    IntStream.range(0, nMap)
+        .forEach(
+            idx -> {
+              final String inFile = Utils.reduceName(jobName, idx, reduceTask);
+              String content;
 
-      try {
-        content = new String(Files.readAllBytes(Paths.get(inFile)));
-      } catch (IOException ex) {
-        ex.printStackTrace();
-        return;
-      }
+              try {
+                content = new String(Files.readAllBytes(Paths.get(inFile)));
+              } catch (IOException ex) {
+                ex.printStackTrace();
+                return;
+              }
 
-      final JSONArray jsonArray = JSONArray.parseArray(content);
-      jsonArray.forEach(o -> kvs.add(((JSONObject) o).toJavaObject(KeyValue.class)));
-    }
+              final JSONArray jsonArray = JSONArray.parseArray(content);
+              jsonArray.forEach(o -> kvs.add(((JSONObject) o).toJavaObject(KeyValue.class)));
+            });
+
     kvs.sort(Comparator.comparing(o -> o.key));
 
     final JSONObject reduceResult = new JSONObject();

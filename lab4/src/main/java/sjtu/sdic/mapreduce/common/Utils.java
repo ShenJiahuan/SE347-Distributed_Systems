@@ -2,7 +2,7 @@ package sjtu.sdic.mapreduce.common;
 
 /** Created by Cachhe on 2019/4/19. */
 public class Utils {
-    public static boolean debugEnabled = false;
+  public static boolean debugEnabled = false;
 
   public static void debug(String msg) {
     if (debugEnabled) System.out.println(msg);

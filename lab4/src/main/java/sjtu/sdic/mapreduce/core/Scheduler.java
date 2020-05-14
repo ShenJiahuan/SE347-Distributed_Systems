@@ -3,6 +3,7 @@ package sjtu.sdic.mapreduce.core;
 import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.IntStream;
 import sjtu.sdic.mapreduce.common.Channel;
 import sjtu.sdic.mapreduce.common.DoTaskArgs;
 import sjtu.sdic.mapreduce.common.JobPhase;
@@ -47,13 +48,11 @@ public class Scheduler {
     System.out.println(String.format("Schedule: %d %s tasks (%d I/Os)", nTasks, phase, nOther));
 
     /**
-     * // All ntasks tasks have to be scheduled on workers. Once all tasks // have completed
-     * successfully, schedule() should return. // // Your code here (Part III, Part IV). //
+     * All ntasks tasks have to be scheduled on workers. Once all tasks have completed successfully,
+     * schedule() should return. Your code here (Part III, Part IV).
      */
     Deque<Integer> workDeque = new ConcurrentLinkedDeque<>();
-    for (int i = 0; i < nTasks; i++) {
-      workDeque.add(i);
-    }
+    IntStream.range(0, nTasks).forEach(workDeque::add);
 
     while (!workDeque.isEmpty()) {
       List<Thread> threads = new ArrayList<>();
@@ -72,7 +71,6 @@ public class Scheduler {
         Thread t =
             new Thread(
                 () -> {
-                  System.out.println("worker begin");
                   final String mapFile = phase == JobPhase.MAP_PHASE ? mapFiles[taskNum] : null;
                   try {
                     Call.getWorkerRpcService(finalWorker)

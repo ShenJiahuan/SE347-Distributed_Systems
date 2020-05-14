@@ -2,6 +2,7 @@ package sjtu.sdic.mapreduce;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,11 +25,7 @@ public class WordCount {
   }
 
   public static String reduceFunc(String key, String[] values) {
-    int result = 0;
-    for (String value : values) {
-      result += Integer.parseInt(value);
-    }
-    return String.valueOf(result);
+    return String.valueOf(Arrays.stream(values).mapToInt(Integer::parseInt).sum());
   }
 
   public static void main(String[] args) {

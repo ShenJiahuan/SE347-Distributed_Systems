@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 import sjtu.sdic.mapreduce.common.KeyValue;
 import sjtu.sdic.mapreduce.common.Utils;
 
@@ -68,16 +69,17 @@ public class Mapper {
     mapResult.forEach(
         kv -> reduceJsons[hashCode(kv.key) % nReduce].add(new KeyValue(kv.key, kv.value)));
 
-    for (int i = 0; i < reduceJsons.length; i++) {
-      JSONArray jsonArray = reduceJsons[i];
-      final String outFile = Utils.reduceName(jobName, mapTask, i);
-      try {
-        Files.write(Paths.get(outFile), jsonArray.toJSONString().getBytes());
-      } catch (IOException ex) {
-        ex.printStackTrace();
-        return;
-      }
-    }
+    IntStream.range(0, reduceJsons.length)
+        .forEach(
+            idx -> {
+              JSONArray jsonArray = reduceJsons[idx];
+              final String outFile = Utils.reduceName(jobName, mapTask, idx);
+              try {
+                Files.write(Paths.get(outFile), jsonArray.toJSONString().getBytes());
+              } catch (IOException ex) {
+                ex.printStackTrace();
+              }
+            });
   }
 
   /**
