@@ -67,7 +67,7 @@ public class Mapper {
     Arrays.setAll(reduceJsons, aVoid -> new JSONArray());
 
     mapResult.forEach(
-        kv -> reduceJsons[hashCode(kv.key) % nReduce].add(new KeyValue(kv.key, kv.value)));
+        kv -> reduceJsons[hashCode(kv.key) % nReduce].add(kv));
 
     IntStream.range(0, reduceJsons.length)
         .forEach(
